@@ -137,4 +137,3 @@ class Hangman
   end
 end
 
-# Hangman.play
