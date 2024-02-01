@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# frozen_string_literal: false
 
 require 'pry-byebug'
 
@@ -7,8 +7,7 @@ class Hangman
   attr_reader :wrong_guesses_remaining
 
   def self.play
-    wordlist = File.read('google-10000-english-no-swears.txt').split
-    new(wordlist).play
+    new(File.read('google-10000-english-no-swears.txt').split).play
   end
 
   def initialize(wordlist)
@@ -25,7 +24,7 @@ class Hangman
   end
 
   def evaluate_guess_count
-    if @guesses_used == 0
+    if @guesses_used.zero?
       welcome_player
     elsif @wrong_guesses_remaining.zero?
       game_over
@@ -33,8 +32,7 @@ class Hangman
   end
 
   def welcome_player
-    puts "\nWelcome to hangman!\n\n"
-    puts "Here's how to play:\n\n"
+    puts "\nWelcome to hangman!\n\n\nHere's how to play:\n\n"
     puts '  - The computer will choose a word. Your goal is to guess the word, one letter at a time.'
     puts '  - If you do guess all the letters in time, you win!'
     puts "  - If you guess incorrectly #{wrong_guesses_remaining} times, you lose.\n\n"
@@ -43,32 +41,30 @@ class Hangman
 
   def player_turn
     letter = guess_letter
-    if letter_in_word?(letter)
-      puts "\nThat letter is in the word!\n\n"
-      update_guessed_word(letter)
-    else
-      puts "\n...\n\n"
-      puts "Hm, no #{letter}'s.\n\n"
-      decrement_guesses
-      puts "You have #{@wrong_guesses_remaining} wrong guesses left. Try again"
-    end
+    letter_in_word?(letter) ? correct_guess(letter) : incorrect_guess(letter)
     @guesses_used += 1
-
     pretty_print_guessed_word
-    letter
+  end
+
+  def correct_guess(letter)
+    puts "\nThat letter is in the word!\n\n"
+    update_guessed_word(letter)
+  end
+
+  def incorrect_guess(letter)
+    puts "\n...\n\nHm, no #{letter}'s.\n\n"
+    decrement_wrong_guesses
+    puts "You have #{@wrong_guesses_remaining} wrong guesses left. Try again"
   end
 
   def pretty_print_guessed_word
-    puts ""
-    puts @guessed_word.chars.join(' ')
-    puts ""
+    puts "\n#{@guessed_word.chars.join(' ')}\n\n\n"
   end
 
   def guess_letter
     print 'Pick a letter... '
     letter = answer
     puts "\nOk, let's see if there are any '#{letter}'s..."
-    # puts "\n...\n\n"
     valid_guess?(letter) ? letter : try_again
   end
 
@@ -77,10 +73,6 @@ class Hangman
     guess_letter
   end
 
-  # TODO:
-  #   - add error handling
-  #   - validate that it is a letter
-  #   - validate that the letter has not yet been chosen
   def valid_guess?(letter)
     letter.downcase.match?(/[a-z]/)
   end
@@ -96,7 +88,7 @@ class Hangman
     end
   end
 
-  def decrement_guesses
+  def decrement_wrong_guesses
     @wrong_guesses_remaining -= 1
   end
 
@@ -105,11 +97,9 @@ class Hangman
   end
 
   def whole_word_guessed?
-    # binding.pry
     @guessed_word == @word
   end
 
-  # TODO: DRY this up with game_over
   def announce_winner
     puts 'You guessed it - great job!'
     play_again? ? Hangman.play : byebye
@@ -122,8 +112,7 @@ class Hangman
   end
 
   def play_again?
-    puts 'Would you like to play again?'
-    puts "Press '1' for yes and any other key to exit."
+    puts "\nWould you like to play again? Press '1' for yes and any other key to exit."
     answer == '1'
   end
 
@@ -132,8 +121,7 @@ class Hangman
   end
 
   def byebye
-    puts "Ok, let's call it a day. Have a good one!"
+    puts "\nOk, let's call it a day. Have a good one!"
     exit
   end
 end
-
