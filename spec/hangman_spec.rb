@@ -41,17 +41,18 @@ RSpec.describe Hangman do
   end
 
   describe '#evaluate_guess_count' do
-    context 'when all guesses remain' do
+    context 'when it is the first guess' do
       it 'calls welcome sequence' do
-        subject.instance_variable_set(:@guesses_remaining, 5)
+        subject.instance_variable_set(:@guesses_used, 0)
         expect(subject).to receive(:welcome_player)
         subject.evaluate_guess_count
       end
     end
 
-    context 'when no guesses remain' do
+    context 'when the player is out of wrong guesses' do
       it 'calls game_over' do
-        subject.instance_variable_set(:@guesses_remaining, 0)
+        subject.instance_variable_set(:@guesses_used, 5)
+        subject.instance_variable_set(:@wrong_guesses_remaining, 0)
         expect(subject).to receive(:game_over)
         subject.evaluate_guess_count
       end
@@ -80,10 +81,10 @@ RSpec.describe Hangman do
   end
 
   describe '#decrement_guesses' do
-    let!(:initial_guess_count) { subject.guesses_remaining }
+    let!(:initial_guess_count) { subject.wrong_guesses_remaining }
     it 'decrements remaining guesses by 1' do
       subject.decrement_guesses
-      expect(subject.guesses_remaining).to eq(initial_guess_count - 1)
+      expect(subject.wrong_guesses_remaining).to eq(initial_guess_count - 1)
     end
   end
 

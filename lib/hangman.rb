@@ -4,7 +4,7 @@ require 'pry-byebug'
 
 # A text-based game of hangman
 class Hangman
-  attr_reader :guesses_remaining
+  attr_reader :wrong_guesses_remaining
 
   def self.play
     wordlist = File.read('google-10000-english-no-swears.txt').split
@@ -13,7 +13,8 @@ class Hangman
 
   def initialize(wordlist)
     @word = wordlist.select { |word| word.length >= 5 && word.length <= 12 }.shuffle.pop
-    @guesses_remaining = 5
+    @guesses_used = 0
+    @wrong_guesses_remaining = 5
     @guessed_word = ''.rjust(@word.length, '_')
   end
 
@@ -24,9 +25,9 @@ class Hangman
   end
 
   def evaluate_guess_count
-    if @guesses_remaining == 5
+    if @guesses_used == 0
       welcome_player
-    elsif @guesses_remaining.zero?
+    elsif @wrong_guesses_remaining.zero?
       game_over
     end
   end
@@ -36,20 +37,22 @@ class Hangman
     puts "Here's how to play:\n\n"
     puts '  - The computer will choose a word. Your goal is to guess the word, one letter at a time.'
     puts '  - If you do guess all the letters in time, you win!'
-    puts "  - If you guess incorrectly #{guesses_remaining} times, you lose.\n\n"
+    puts "  - If you guess incorrectly #{wrong_guesses_remaining} times, you lose.\n\n"
     puts "The word has #{@word.length} letters.\n\n\n"
   end
 
   def player_turn
     letter = guess_letter
     if letter_in_word?(letter)
-      puts 'That letter is in the word!'
+      puts "\nThat letter is in the word!\n\n"
       update_guessed_word(letter)
     else
-      puts 'Not in the word.'
+      puts "\n...\n\n"
+      puts "Hm, no #{letter}'s.\n\n"
       decrement_guesses
-      puts "You have #{@guesses_remaining} guesses left."
+      puts "You have #{@wrong_guesses_remaining} wrong guesses left. Try again"
     end
+    @guesses_used += 1
 
     pretty_print_guessed_word
     letter
@@ -64,7 +67,8 @@ class Hangman
   def guess_letter
     print 'Pick a letter... '
     letter = answer
-    puts "Ok, let's see if there are any '#{letter}'s..."
+    puts "\nOk, let's see if there are any '#{letter}'s..."
+    # puts "\n...\n\n"
     valid_guess?(letter) ? letter : try_again
   end
 
@@ -93,7 +97,7 @@ class Hangman
   end
 
   def decrement_guesses
-    @guesses_remaining -= 1
+    @wrong_guesses_remaining -= 1
   end
 
   def letter_in_word?(letter)
@@ -112,8 +116,8 @@ class Hangman
   end
 
   def game_over
-    puts "You ran out of turns. The word was '#{@word}'."
-    puts 'Better luck next time!'
+    puts "You ran out of turns. The word was '#{@word}'.\n\n"
+    puts "Better luck next time!\n\n"
     play_again? ? Hangman.play : byebye
   end
 
@@ -133,4 +137,4 @@ class Hangman
   end
 end
 
-Hangman.play
+# Hangman.play
