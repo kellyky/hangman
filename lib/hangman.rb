@@ -1,5 +1,6 @@
 # frozen_string_literal: false
-
+#
+require 'rainbow'
 require 'pry-byebug'
 
 # A text-based game of hangman
@@ -36,16 +37,17 @@ class Hangman
     puts "\nWelcome to hangman!\n\n\nHere's how to play:\n\n"
     puts '  - The computer will choose a word. Your goal is to guess the word, one letter at a time.'
     puts '  - If you do guess all the letters in time, you win!'
-    puts "  - If you guess incorrectly #{wrong_guesses_remaining} times, you lose.\n\n"
+    puts "  - If you guess incorrectly " + red_text(@wrong_guesses_remaining) + " times, you lose.\n\n"
     puts "The word has #{@word.length} letters.\n\n\n"
   end
+
 
   def player_turn
     letter = guess_letter
     letter_in_word?(letter) ? correct_guess(letter) : incorrect_guess(letter)
     @guesses_used += 1
     @letters_already_guessed << letter
-    pretty_print_guessed_word
+    puts prettified_guessed_word
   end
 
   def correct_guess(letter)
@@ -56,11 +58,11 @@ class Hangman
   def incorrect_guess(letter)
     puts "\n...\n\nHm, no #{letter}'s.\n\n"
     decrement_wrong_guesses
-    puts "You have #{@wrong_guesses_remaining} wrong guesses left. Try again."
+    puts "You have " + red_text(@wrong_guesses_remaining) + " wrong guesses left. Try again."
   end
 
-  def pretty_print_guessed_word
-    puts "\n#{@guessed_word.chars.join(' ')}\n\n\n"
+  def prettified_guessed_word
+    yellow_text "\n#{@guessed_word.chars.join(' ')}\n\n\n"
   end
 
   def guess_letter
@@ -69,20 +71,13 @@ class Hangman
     valid_guess?(letter) ? letter : guess_letter
   end
 
-  # I think this method is doing too much.. gotta rework it
   def valid_guess?(letter)
     case
-    when already_guessed?(letter)
-      print "\nYou already guessed #{letter}. "
-      print "Here are all the letters you've guessed so far: #{@letters_already_guessed.join(", ")}\n\n"
-    when non_letter?(letter)
-      puts "\nOpe, #{letter} is not an option. You need to guess a letter.\n\n"
-    when too_many_characters?(letter)
-      puts "\nOops! that's #{letter.length} letters. You need to choose just one letter.\n\n"
-    else
-      return true
+    when already_guessed?(letter) then already_guessed_message(letter)
+    when !letter?(letter) then non_letter_message(letter)
+    when too_many_characters?(letter) then too_many_characters_message(letter)
+    else return true
     end
-    false
   end
 
   def already_guessed?(letter)
@@ -95,6 +90,19 @@ class Hangman
 
   def too_many_characters?(letter)
     letter.length != 1
+  end
+
+  def already_guessed_message(letter)
+    print "\nYou already guessed #{letter}. "
+    print "Here are all the letters you've guessed so far: #{@letters_already_guessed.join(", ")}\n\n"
+  end
+
+  def non_letter_message(letter)
+    puts "\nOpe, #{letter} is not an option. You need to guess a letter.\n\n"
+  end
+
+  def too_many_characters_message(letter)
+    puts "\nOops! that's #{letter.length} letters. You need to choose just one letter.\n\n"
   end
 
   def update_guessed_word(letter)
@@ -121,12 +129,13 @@ class Hangman
   end
 
   def announce_winner
-    puts 'You guessed it - great job!'
+    puts green_text('You guessed it - great job!')
+    # puts 'You guessed it - great job!'
     play_again? ? Hangman.play : byebye
   end
 
   def game_over
-    puts "You ran out of turns. The word was '#{@word}'.\n\n"
+    puts "You ran out of turns. You lost this round. The word was " + purple_text(@word) + ".\n\n"
     puts "Better luck next time!\n\n"
     play_again? ? Hangman.play : byebye
   end
@@ -143,6 +152,24 @@ class Hangman
   def byebye
     puts "\nOk, let's call it a day. Have a good one!"
     exit
+  end
+
+  private
+
+  def red_text(text)
+    Rainbow(text).red
+  end
+
+  def yellow_text(text)
+    Rainbow(text).yellow
+  end
+
+  def green_text(text)
+    Rainbow(text).green
+  end
+
+  def purple_text(text)
+    Rainbow(text).purple
   end
 end
 

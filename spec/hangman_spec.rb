@@ -89,13 +89,12 @@ RSpec.describe Hangman do
     end
   end
 
-  describe '#pretty_print_guessed_word' do
+  describe '#prettified_guessed_word' do
     let(:guessed_word) { 'ab_' }
     before { subject.instance_variable_set(:@guessed_word, guessed_word) }
 
     it 'prints the letters and/or "_" characters with a space between them' do
-      pretty_version = "\na b _\n\n\n"
-      expect { subject.pretty_print_guessed_word }.to output(pretty_version).to_stdout
+      expect(subject.prettified_guessed_word.match?("a b _")).to be(true)
     end
   end
 
@@ -109,19 +108,35 @@ RSpec.describe Hangman do
 
   describe '#valid_guess?' do
     context 'when the letter was already guessed' do
-      #should return false
+      let(:letter) { 'a' }
+      before { subject.instance_variable_set(:@letters_already_guessed, 'a') }
+
+      it 'should call already_guessed_message' do
+        expect(subject).to receive(:already_guessed_message).with(letter)
+        subject.valid_guess?(letter)
+      end
     end
 
     context 'when the guess is not a letter' do
-      # should return false
+      let(:letter) { ';' }
+      it 'should call non_letter_message' do
+        expect(subject).to receive(:non_letter_message).with(letter)
+        subject.valid_guess?(letter)
+      end
     end
 
     context 'when the guess has too many characters' do
-      # should return false
+      let(:letter) { 'asdf123gfgb;' }
+      it 'should call too_many_characters_message' do
+        expect(subject).to receive(:too_many_characters_message).with(letter)
+        subject.valid_guess?(letter)
+      end
     end
 
-    context 'when the guess is a letter not yet guessed' do
-      # should return true
+    context 'when the letter is otherwise valid and not yet guessed' do
+      it 'should return true' do
+        expect(subject.valid_guess?('a')).to be(true)
+      end
     end
   end
 
