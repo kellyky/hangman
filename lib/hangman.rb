@@ -15,6 +15,7 @@ class Hangman
     @guesses_used = 0
     @wrong_guesses_remaining = 5
     @guessed_word = ''.rjust(@word.length, '_')
+    @letters_already_guessed = []
   end
 
   def play
@@ -43,6 +44,7 @@ class Hangman
     letter = guess_letter
     letter_in_word?(letter) ? correct_guess(letter) : incorrect_guess(letter)
     @guesses_used += 1
+    @letters_already_guessed << letter
     pretty_print_guessed_word
   end
 
@@ -54,7 +56,7 @@ class Hangman
   def incorrect_guess(letter)
     puts "\n...\n\nHm, no #{letter}'s.\n\n"
     decrement_wrong_guesses
-    puts "You have #{@wrong_guesses_remaining} wrong guesses left. Try again"
+    puts "You have #{@wrong_guesses_remaining} wrong guesses left. Try again."
   end
 
   def pretty_print_guessed_word
@@ -63,18 +65,36 @@ class Hangman
 
   def guess_letter
     print 'Pick a letter... '
-    letter = answer
-    puts "\nOk, let's see if there are any '#{letter}'s..."
-    valid_guess?(letter) ? letter : try_again
+    letter = answer.downcase
+    valid_guess?(letter) ? letter : guess_letter
   end
 
-  def try_again
-    puts 'Ope, that\'s not an option. Try again.'
-    guess_letter
-  end
-
+  # I think this method is doing too much.. gotta rework it
   def valid_guess?(letter)
-    letter.downcase.match?(/[a-z]/)
+    case
+    when already_guessed?(letter)
+      print "\nYou already guessed #{letter}. "
+      print "Here are all the letters you've guessed so far: #{@letters_already_guessed.join(", ")}\n\n"
+    when non_letter?(letter)
+      puts "\nOpe, #{letter} is not an option. You need to guess a letter.\n\n"
+    when too_many_characters?(letter)
+      puts "\nOops! that's #{letter.length} letters. You need to choose just one letter.\n\n"
+    else
+      return true
+    end
+    false
+  end
+
+  def already_guessed?(letter)
+    @letters_already_guessed.include?(letter)
+  end
+
+  def letter?(letter)
+    letter.match?(/[a-z]/)
+  end
+
+  def too_many_characters?(letter)
+    letter.length != 1
   end
 
   def update_guessed_word(letter)
@@ -125,3 +145,4 @@ class Hangman
     exit
   end
 end
+

@@ -107,15 +107,22 @@ RSpec.describe Hangman do
     end
   end
 
-  describe '#try_again' do
-    it 'should call guess_letter' do
-      expect(subject).to receive(:guess_letter)
-      subject.try_again
-    end
-  end
-
   describe '#valid_guess?' do
-    # holding off on writing this b'c I'm still deciding what I want to validate here...
+    context 'when the letter was already guessed' do
+      #should return false
+    end
+
+    context 'when the guess is not a letter' do
+      # should return false
+    end
+
+    context 'when the guess has too many characters' do
+      # should return false
+    end
+
+    context 'when the guess is a letter not yet guessed' do
+      # should return true
+    end
   end
 
   describe '#update_guessed_word' do
