@@ -106,6 +106,22 @@ RSpec.describe Hangman do
     end
   end
 
+  describe '#save_game?' do
+    context 'when the player typed "save"' do
+      let(:letter) { 'save' }
+      it { expect(subject.save_game?(letter)).to be true }
+    end
+
+    context 'when the player typed something else' do
+      let(:letter) { 'e' }
+      it { expect(subject.save_game?(letter)).to be false }
+    end
+  end
+
+  describe '#save_game' do
+    # test code that saves game
+  end
+
   describe '#valid_guess?' do
     context 'when the letter was already guessed' do
       let(:letter) { 'a' }

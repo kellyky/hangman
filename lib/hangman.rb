@@ -1,6 +1,7 @@
 # frozen_string_literal: false
-#
+
 require 'rainbow'
+require 'yaml'
 require 'pry-byebug'
 
 # A text-based game of hangman
@@ -8,15 +9,86 @@ class Hangman
   attr_reader :wrong_guesses_remaining
 
   def self.play
-    new(File.read('google-10000-english-no-swears.txt').split).play
+    puts "\n====================== Welcome to hangman! ====================== \n\n"
+
+    self.print_rules
+    self.new_game unless self.saved_games?
+
+    puts "\n======================  <<><><> <> <><><>>  ====================== \n\n"
+
+    print "\nYou have saved games. "
+    print "Select ENTER/RETURN to start a new game, "
+    print "or choose from the games below.\n\n"
+
+    files = Dir.children('saved') 
+    saved_games = files.each_with_object({}).with_index do |(file, games), i|
+      name = file.gsub('.txt', '')
+      num = (i + 1).to_s
+      puts "  - [#{num}] #{name}"
+
+      games[num] = name
+    end
+
+    puts "\n"
+    game_choice = gets.chomp.strip
+    self.parse_input(game_choice, saved_games)
   end
 
-  def initialize(wordlist)
-    @word = wordlist.select { |word| word.length >= 5 && word.length <= 12 }.shuffle.pop
-    @guesses_used = 0
-    @wrong_guesses_remaining = 5
+  def self.print_rules
+    wrong_guesses_allowed = Rainbow("5").red
+    puts "Here's how to play:\n\n"
+    puts '  - The computer will choose a word. Your goal is to guess the word, one letter at a time.'
+    puts '  - If you do guess all the letters in time, you win!'
+    puts "  - If you guess incorrectly " + wrong_guesses_allowed + " times, you lose.\n\n"
+  end
+
+  def self.new_game
+    wordlist = File.read('google-10000-english-no-swears.txt').split
+    word = wordlist.select { |word| word.length >= 5 && word.length <= 12 }.shuffle.pop
+    new(word).play
+  end
+
+  def self.parse_input(game_choice, saved_games)
+    self.new_game if game_choice.empty?
+
+    saved_file = saved_games[game_choice]
+    filename = File.join('saved/', saved_file + ".txt")
+    self.resume_saved_game(filename)
+  end
+
+  # TODO: Should this be broken down a bit more? Seems a bit clunky atm
+  def self.resume_saved_game(file)
+    data = YAML.load_file(file)
+    word = data[:word]
+    game = Hangman.new(
+      word,
+      data[:guesses_used],
+      data[:wrong_guesses_remaining],
+      data[:letters_already_guessed]
+    )
+
+    word_length = word.length.to_s
+    guessed_word = data[:guessed_word].chars.join(" ")
+    guessed_letters = data[:letters_already_guessed].join(', ')
+    puts "\n\nGreat! Picking up where you left off:\n\n"
+    puts "  - Your word has #{Rainbow("#{word_length} letters").green}"
+    puts "  - Here are the letters you've already guessed: #{Rainbow(guessed_letters).cyan}, "
+    puts "  - You have #{Rainbow("#{data[:wrong_guesses_remaining]} wrong guesses").red} left."
+    puts "  - Here's your word so far: " + Rainbow(guessed_word).yellow
+    puts "\n\n You've got this!\n\n"
+    game.play
+  end
+
+  def self.saved_games?
+    Dir.children('saved').any?
+  end
+
+  def initialize(word, guesses_used=0, wrong_guesses_remaining=5, letters_already_guessed=[])
+    @word = word
+    @guesses_used = guesses_used
+    @wrong_guesses_remaining = wrong_guesses_remaining
     @guessed_word = ''.rjust(@word.length, '_')
-    @letters_already_guessed = []
+    @letters_already_guessed = letters_already_guessed
   end
 
   def play
@@ -34,12 +106,19 @@ class Hangman
   end
 
   def welcome_player
-    puts "\nWelcome to hangman!\n\n\nHere's how to play:\n\n"
-    puts '  - The computer will choose a word. Your goal is to guess the word, one letter at a time.'
-    puts '  - If you do guess all the letters in time, you win!'
-    puts "  - If you guess incorrectly " + red_text(@wrong_guesses_remaining) + " times, you lose.\n\n"
+    @saved_games = {}
+    if Dir.children('saved').any?
+    end
+
     puts "The word has #{@word.length} letters.\n\n\n"
   end
+
+#   def show_rules
+#     puts "Here's how to play:\n\n"
+#     puts '  - The computer will choose a word. Your goal is to guess the word, one letter at a time.'
+#     puts '  - If you do guess all the letters in time, you win!'
+#     puts "  - If you guess incorrectly " + red_text(@wrong_guesses_remaining) + " times, you lose.\n\n"
+#   end
 
 
   def player_turn
@@ -66,10 +145,37 @@ class Hangman
   end
 
   def guess_letter
-    print 'Pick a letter... '
-    letter = answer.downcase
+    print "Pick a letter (or type 'save' to save your progress)... "
+    letter = answer.downcase.strip
+    return save_game if save_game?(letter)
     valid_guess?(letter) ? letter : guess_letter
   end
+
+  def save_game?(letter)
+    letter == 'save'
+  end
+
+  def save_game
+    puts "\n\nWhat would you like to call this game? For example, your name.\n"
+    game_name = answer.downcase.strip
+
+    file_name = game_name.empty? ? 'saved_game' : game_name
+
+    data = YAML.dump({
+      word: @word,
+      guesses_used: @guesses_used,
+      wrong_guesses_remaining: @wrong_guesses_remaining,
+      guessed_word: @guessed_word,
+      letters_already_guessed: @letters_already_guessed
+    })
+
+    Dir.mkdir('saved') unless Dir.exist?('saved')
+    File.open("saved/#{file_name}.txt", 'w') do |file|
+      file.write(data)
+    end
+
+    puts "\nGot it! Your game will be called #{file_name}. Let's call it a day for now!"
+    exit end
 
   def valid_guess?(letter)
     case
