@@ -9,37 +9,31 @@ class Hangman
   attr_reader :wrong_guesses_remaining
 
   def self.play
-    puts "\n====================== Welcome to hangman! ====================== \n\n"
-
-    self.print_rules
+    self.print_intro
     self.new_game unless self.saved_games?
 
-    puts "\n======================  <<><><> <> <><><>>  ====================== \n\n"
+    print "\nYou have saved games. Choose a game to play:\n\n"
 
-    print "\nYou have saved games. "
-    print "Select ENTER/RETURN to start a new game, "
-    print "or choose from the games below.\n\n"
-
-    files = Dir.children('saved') 
+    files = Dir.children('saved')
     saved_games = files.each_with_object({}).with_index do |(file, games), i|
-      name = file.gsub('.txt', '')
-      num = (i + 1).to_s
+      name, num = [file.gsub('.txt', ''), (i + 1).to_s]
       puts "  - [#{num}] #{name}"
-
       games[num] = name
     end
 
-    puts "\n"
+    puts "  - or select [Return/Enter] key to start a new game\n\n"
     game_choice = gets.chomp.strip
     self.parse_input(game_choice, saved_games)
   end
 
-  def self.print_rules
+  def self.print_intro
+    puts "\n====================== Welcome to hangman! ====================== \n\n"
     wrong_guesses_allowed = Rainbow("5").red
     puts "Here's how to play:\n\n"
     puts '  - The computer will choose a word. Your goal is to guess the word, one letter at a time.'
     puts '  - If you do guess all the letters in time, you win!'
     puts "  - If you guess incorrectly " + wrong_guesses_allowed + " times, you lose.\n\n"
+    puts "\n======================  <<><><> <> <><><>>  ====================== \n\n"
   end
 
   def self.new_game
@@ -56,70 +50,57 @@ class Hangman
     self.resume_saved_game(filename)
   end
 
-  # TODO: Should this be broken down a bit more? Seems a bit clunky atm
   def self.resume_saved_game(file)
     data = YAML.load_file(file)
-    word = data[:word]
+
     game = Hangman.new(
-      word,
+      data[:word],
       data[:guesses_used],
+      data[:guessed_word],
       data[:wrong_guesses_remaining],
       data[:letters_already_guessed]
     )
 
-    word_length = word.length.to_s
-    guessed_word = data[:guessed_word].chars.join(" ")
-    guessed_letters = data[:letters_already_guessed].join(', ')
+    self.game_recap(
+      data[:word].length.to_s,
+      data[:guessed_word].chars.join(' '),
+      data[:letters_already_guessed].join(', '),
+      data[:wrong_guesses_left]
+    )
+    game.play
+  end
+
+  def self.game_recap(word_length, guessed_word, guessed_letters, wrong_guesses_left)
     puts "\n\nGreat! Picking up where you left off:\n\n"
     puts "  - Your word has #{Rainbow("#{word_length} letters").green}"
     puts "  - Here are the letters you've already guessed: #{Rainbow(guessed_letters).cyan}, "
-    puts "  - You have #{Rainbow("#{data[:wrong_guesses_remaining]} wrong guesses").red} left."
+    puts "  - You have #{Rainbow("#{wrong_guesses_left} wrong guesses").red} left."
     puts "  - Here's your word so far: " + Rainbow(guessed_word).yellow
     puts "\n\n You've got this!\n\n"
-    game.play
   end
 
   def self.saved_games?
     Dir.children('saved').any?
   end
 
-  def initialize(word, guesses_used=0, wrong_guesses_remaining=5, letters_already_guessed=[])
+  def initialize(word, guesses_used=0, guessed_word=nil, wrong_guesses_remaining=5, letters_already_guessed=[])
     @word = word
     @guesses_used = guesses_used
     @wrong_guesses_remaining = wrong_guesses_remaining
-    @guessed_word = ''.rjust(@word.length, '_')
+    @guessed_word = guessed_word ||''.rjust(@word.length, '_')
     @letters_already_guessed = letters_already_guessed
   end
 
   def play
-    evaluate_guess_count
+    puts "\n\nYour word has #{@word.length} letters:\n\n #{prettified_guessed_word}\n\n"
+    game_over if game_over?
     player_turn
     whole_word_guessed? ? announce_winner : play
   end
 
-  def evaluate_guess_count
-    if @guesses_used.zero?
-      welcome_player
-    elsif @wrong_guesses_remaining.zero?
-      game_over
-    end
+  def game_over?
+    @wrong_guesses_remaining.zero?
   end
-
-  def welcome_player
-    @saved_games = {}
-    if Dir.children('saved').any?
-    end
-
-    puts "The word has #{@word.length} letters.\n\n\n"
-  end
-
-#   def show_rules
-#     puts "Here's how to play:\n\n"
-#     puts '  - The computer will choose a word. Your goal is to guess the word, one letter at a time.'
-#     puts '  - If you do guess all the letters in time, you win!'
-#     puts "  - If you guess incorrectly " + red_text(@wrong_guesses_remaining) + " times, you lose.\n\n"
-#   end
-
 
   def player_turn
     letter = guess_letter
@@ -169,7 +150,6 @@ class Hangman
       letters_already_guessed: @letters_already_guessed
     })
 
-    Dir.mkdir('saved') unless Dir.exist?('saved')
     File.open("saved/#{file_name}.txt", 'w') do |file|
       file.write(data)
     end
