@@ -8,9 +8,163 @@ RSpec.describe Hangman do
   let(:wordlist) { %w[a asdfasdfasdfasdf banana] }
 
   describe '.play' do
+    context 'when there ARE saved games' do
+      it 'should go through the saved_games_options' do
+        allow(described_class).to receive(:saved_games?).and_return(true)
+        expect(described_class).to receive(:saved_game_option)
+        described_class.play
+      end
+    end
+
+    context 'when there are NO saved games' do
+      it 'should call new_game' do
+        allow(described_class).to receive(:saved_games?).and_return(false)
+        expect(described_class).to receive(:new_game)
+        described_class.play
+      end
+    end
+  end
+
+  describe '.saved_game_option' do
+    let(:files) { ['file_a.txt', 'file_b.txt'] }
+    let(:saved_games) { { '1' => 'file_a', '2' => 'file_b' } }
+    let(:user_response) { '1' }
+
+    before do
+      allow(Dir).to receive(:children).with('saved').and_return(files)
+      allow(described_class).to receive(:saved_games).with(files).and_return(saved_games) 
+      allow(described_class).to receive(:user_response).and_return(user_response)
+    end
+
+    it 'calls parse_input, passing in the user response & saved games hash as args' do
+      expect(described_class).to receive(:parse_input).with(user_response, saved_games)
+      described_class.saved_game_option
+    end
+  end
+
+  describe '.user_response' do
+    context 'when input is empty' do
+      it 'returns what the user entered' do
+        allow(described_class).to receive(:gets).and_return('')
+        expect(described_class.user_response).to be_empty
+      end
+    end
+
+    context 'when there is whitespace' do
+      it 'returns what the user entered - stripped of whitespace' do
+        allow(described_class).to receive(:gets).and_return(' 4 ')
+        expect(described_class.user_response).to eq('4')
+      end
+    end
+
+    context 'when there is no whitespace' do
+      it 'returns what the user entered' do
+        allow(described_class).to receive(:gets).and_return('1')
+        expect(described_class.user_response).to eq('1')
+      end
+    end
+  end
+
+  describe '.files' do
+    let!(:files) { ['file_a.txt', 'file_b.txt'] }
+
+    before { allow(Dir).to receive(:children).with('saved').and_return(files) }
+    it 'creates an array of files in saved directory' do
+      expect(described_class.files).to eq(files)
+    end
+  end
+
+  describe '.saved_games' do
+    let(:files) { ['file_a.txt', 'file_b.txt'] }
+    let(:expected_saved_games) { {"1"=>"file_a", "2"=>"file_b"} }
+
+    before { allow(Dir).to receive(:children).with('saved').and_return(files) }
+    it 'returns a hash' do
+      expect(described_class.saved_games(files)).to eq(expected_saved_games)
+    end
+  end
+
+  describe '.new_game' do
     it 'should call play' do
       expect(subject).to receive(:play)
       subject.play
+    end
+  end
+
+  describe '.wordlist' do
+    it 'should return an array/list of words' do
+      expect(described_class.wordlist.class).to be(Array)
+    end
+  end
+
+  describe '.parse_input' do
+    let(:saved_games) { {"1"=>"file_a", "2"=>"file_b"} }
+
+    context 'when user input is empty' do
+      let(:user_response) { '' }
+
+      it 'calls self.new_game' do
+        expect(described_class).to receive(:new_game)
+        described_class.parse_input(user_response, saved_games)
+      end
+    end
+
+    context 'when user selects a valid option' do
+      let(:user_response) { '2' }
+      let(:files) { ['file_a.txt', 'file_b.txt'] }
+
+      before { allow(Dir).to receive(:children).with('saved').and_return(files) }
+
+      it 'calls resume_saved_game, passing in the selected file' do
+        file = 'saved/file_b.txt'
+        expect(described_class).to receive(:resume_saved_game).with(file)
+        described_class.parse_input(user_response, saved_games)
+      end
+    end
+
+    # context 'when user selects an invalid option' do
+    #   # don't think my code handles this yet
+    #   let(:user_response) { '3' }
+    #   let(:files) { ['file_a.txt', 'file_b.txt'] }
+
+    #   before { allow(Dir).to receive(:children).with('saved').and_return(files) }
+
+    #   it 'calls resume_saved_game, passing in the selected file' do
+    #     file = 'saved/file_b.txt'
+    #     expect(described_class).to receive(:resume_saved_game).with(file)
+    #     described_class.parse_input(user_response, saved_games)
+    #   end
+    # end
+  end
+
+  describe '.resume_saved_game' do
+    let!(:file) { 'file.txt' }
+    let(:data) do
+      game_data = { 'foo' => 'bar' }
+      binding.pry
+      allow(YAML).to receive(:load_file).with(file).and_return(game_data) 
+    end
+
+    before { allow(Dir).to receive(:children).with('saved').and_return([file]) }
+
+    it 'qwer' do
+      # binding.pry
+      described_class.resume_saved_game('saved/file.txt')
+    end
+  end
+
+  describe '.game_recap' do
+  end
+
+  describe '.saved_games?' do
+    context 'when there are saved games present' do
+      it 'should return true' do
+      end
+    end
+
+    context 'when there are no saved games' do
+      it 'should return false' do
+      end
     end
   end
 

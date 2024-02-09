@@ -10,20 +10,12 @@ class Hangman
 
   def self.play
     self.print_intro
-    self.new_game unless self.saved_games?
-
-    print "\nYou have saved games. Choose a game to play:\n\n"
-
-    files = Dir.children('saved')
-    saved_games = files.each_with_object({}).with_index do |(file, games), i|
-      name, num = [file.gsub('.txt', ''), (i + 1).to_s]
-      puts "  - [#{num}] #{name}"
-      games[num] = name
+    if self.saved_games?
+      print "\nYou have saved games. Choose a game to play:\n\n"
+      self.saved_game_option
+    else
+      self.new_game
     end
-
-    puts "  - or select [Return/Enter] key to start a new game\n\n"
-    game_choice = gets.chomp.strip
-    self.parse_input(game_choice, saved_games)
   end
 
   def self.print_intro
@@ -36,21 +28,56 @@ class Hangman
     puts "\n======================  <<><><> <> <><><>>  ====================== \n\n"
   end
 
+  def self.saved_game_option
+
+    files = self.files
+    saved_games = self.saved_games(files)
+    saved_games.each { |option, name| puts "  - [#{option}] #{name}" }
+
+    puts "  - or select [Return/Enter] key to start a new game\n\n"
+    user_response = self.user_response
+    self.parse_input(user_response, saved_games)
+  end
+
+  def self.user_response
+    gets.chomp.strip
+  end
+
+  def self.files
+    Dir.children('saved')
+  end
+
+  def self.saved_games(files)
+    files.each_with_object({}).with_index do |(file, games), i|
+      games[(i + 1).to_s] = file.gsub('.txt', '')
+    end
+  end
+
   def self.new_game
-    wordlist = File.read('google-10000-english-no-swears.txt').split
-    word = wordlist.select { |word| word.length >= 5 && word.length <= 12 }.shuffle.pop
+    word = self.wordlist.select { |word| word.length >= 5 && word.length <= 12 }.shuffle.pop
     new(word).play
   end
 
-  def self.parse_input(game_choice, saved_games)
-    self.new_game if game_choice.empty?
+  def self.wordlist
+    File.read('google-10000-english-no-swears.txt').split
+  end
 
-    saved_file = saved_games[game_choice]
+  def self.parse_input(user_response, saved_games)
+    return self.new_game if user_response.empty?
+
+    if saved_games.keys.none?(user_response)
+      puts "\n\nI don't have any games saved for '#{user_response}'.\n\n"
+      puts "Please choose from the games shown - or press [ENTER/RETURN] to start a new game.\n\n"
+      self.saved_game_option
+    end
+
+    saved_file = saved_games[user_response]
     filename = File.join('saved/', saved_file + ".txt")
     self.resume_saved_game(filename)
   end
 
   def self.resume_saved_game(file)
+    binding.pry
     data = YAML.load_file(file)
 
     game = Hangman.new(
@@ -216,14 +243,13 @@ class Hangman
 
   def announce_winner
     puts green_text('You guessed it - great job!')
-    # puts 'You guessed it - great job!'
-    play_again? ? Hangman.play : byebye
+    play_again? ? Hangman.play : exit_game
   end
 
   def game_over
     puts "You ran out of turns. You lost this round. The word was " + purple_text(@word) + ".\n\n"
     puts "Better luck next time!\n\n"
-    play_again? ? Hangman.play : byebye
+    play_again? ? Hangman.play : exit_game
   end
 
   def play_again?
@@ -235,7 +261,7 @@ class Hangman
     gets.chomp
   end
 
-  def byebye
+  def exit_game
     puts "\nOk, let's call it a day. Have a good one!"
     exit
   end
