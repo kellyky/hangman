@@ -25,11 +25,11 @@ class Hangman
     puts '  - The computer will choose a word. Your goal is to guess the word, one letter at a time.'
     puts '  - If you do guess all the letters in time, you win!'
     puts "  - If you guess incorrectly " + wrong_guesses_allowed + " times, you lose.\n\n"
+    puts "To save your game for next time - type 'save' when prompted for a letter.\n\n"
     puts "\n======================  <<><><> <> <><><>>  ====================== \n\n"
   end
 
   def self.saved_game_option
-
     files = self.files
     saved_games = self.saved_games(files)
     saved_games.each { |option, name| puts "  - [#{option}] #{name}" }
@@ -119,10 +119,14 @@ class Hangman
   end
 
   def play
-    puts "\n\nYour word has #{@word.length} letters:\n\n #{prettified_guessed_word}\n\n"
+    show_word_length if @guesses_used.zero?
     game_over if game_over?
     player_turn
     whole_word_guessed? ? announce_winner : play
+  end
+
+  def show_word_length
+    puts "\n\nYour word has #{@word.length} letters:\n\n #{prettified_guessed_word}\n\n"
   end
 
   def game_over?
@@ -153,10 +157,15 @@ class Hangman
   end
 
   def guess_letter
-    print "Pick a letter (or type 'save' to save your progress)... "
+    display_already_guessed_letters if @letters_already_guessed.any?
+    print "\nPick a letter... "
     letter = answer.downcase.strip
     return save_game if save_game?(letter)
     valid_guess?(letter) ? letter : guess_letter
+  end
+
+  def display_already_guessed_letters
+    print "Here's what you've guessed so far: #{guessed_letters}\n\n"
   end
 
   def save_game?(letter)
@@ -203,6 +212,10 @@ class Hangman
 
   def too_many_characters?(letter)
     letter.length != 1
+  end
+
+  def guessed_letters
+    @letters_already_guessed.sort.join(", ")
   end
 
   def already_guessed_message(letter)
@@ -284,4 +297,3 @@ class Hangman
     Rainbow(text).purple
   end
 end
-
