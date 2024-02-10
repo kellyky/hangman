@@ -10,12 +10,10 @@ class Hangman
 
   def self.play
     self.print_intro
-    if self.saved_games?
-      print "\nYou have saved games. Choose a game to play:\n\n"
-      self.saved_game_option
-    else
-      self.new_game
-    end
+    self.new_game unless self.saved_games_exist?
+
+    print "\nYou have saved games. Press ENTER/RETURN for a NEW game or choose from the following:\n\n"
+    self.saved_game
   end
 
   def self.print_intro
@@ -26,21 +24,30 @@ class Hangman
     puts '  - If you do guess all the letters in time, you win!'
     puts "  - If you guess incorrectly " + wrong_guesses_allowed + " times, you lose.\n\n"
     puts "To save your game for next time - type 'save' when prompted for a letter.\n\n"
-    puts "\n======================  <<><><> <> <><><>>  ====================== \n\n"
+    puts "\n <<><><><><>> Start a NEW game or resume a SAVED game <<><><><><>> \n\n"
   end
 
-  def self.saved_game_option
+  def self.saved_games_exist?
+    Dir.children('saved').any?
+  end
+
+  def self.new_game
+    print "\nGreat! A new word for a new game."
+    word = self.wordlist.select { |word| word.length >= 5 && word.length <= 12 }.shuffle.pop
+    new(word).play
+  end
+
+  def self.wordlist
+    File.read('google-10000-english-no-swears.txt').split
+  end
+
+  def self.saved_game
     files = self.files
     saved_games = self.saved_games(files)
     saved_games.each { |option, name| puts "  - [#{option}] #{name}" }
 
-    puts "  - or select [Return/Enter] key to start a new game\n\n"
     user_response = self.user_response
     self.parse_input(user_response, saved_games)
-  end
-
-  def self.user_response
-    gets.chomp.strip
   end
 
   def self.files
@@ -53,13 +60,8 @@ class Hangman
     end
   end
 
-  def self.new_game
-    word = self.wordlist.select { |word| word.length >= 5 && word.length <= 12 }.shuffle.pop
-    new(word).play
-  end
-
-  def self.wordlist
-    File.read('google-10000-english-no-swears.txt').split
+  def self.user_response
+    gets.chomp.strip
   end
 
   def self.parse_input(user_response, saved_games)
@@ -68,7 +70,7 @@ class Hangman
     if saved_games.keys.none?(user_response)
       puts "\n\nI don't have any games saved for '#{user_response}'.\n\n"
       puts "Please choose from the games shown - or press [ENTER/RETURN] to start a new game.\n\n"
-      self.saved_game_option
+      self.saved_game
     end
 
     saved_file = saved_games[user_response]
@@ -77,7 +79,6 @@ class Hangman
   end
 
   def self.resume_saved_game(file)
-    binding.pry
     data = YAML.load_file(file)
 
     game = Hangman.new(
@@ -106,10 +107,6 @@ class Hangman
     puts "\n\n You've got this!\n\n"
   end
 
-  def self.saved_games?
-    Dir.children('saved').any?
-  end
-
   def initialize(word, guesses_used=0, guessed_word=nil, wrong_guesses_remaining=5, letters_already_guessed=[])
     @word = word
     @guesses_used = guesses_used
@@ -126,7 +123,7 @@ class Hangman
   end
 
   def show_word_length
-    puts "\n\nYour word has #{@word.length} letters:\n\n #{prettified_guessed_word}\n\n"
+    print " Your word has #{@word.length} letters:   #{prettified_guessed_word}\n"
   end
 
   def game_over?
@@ -134,30 +131,31 @@ class Hangman
   end
 
   def player_turn
+    puts "\n\n======================  <> <> <> <> <>  ====================== \n\n\n"
     letter = guess_letter
     letter_in_word?(letter) ? correct_guess(letter) : incorrect_guess(letter)
     @guesses_used += 1
     @letters_already_guessed << letter
-    puts prettified_guessed_word
   end
 
   def correct_guess(letter)
-    puts "\nThat letter is in the word!\n\n"
     update_guessed_word(letter)
+    puts "\n#{Rainbow("Woohoo").green}! #{Rainbow("'#{letter.upcase}'").green} is in the word:  #{prettified_guessed_word}"
+    # print prettified_guessed_word
   end
 
   def incorrect_guess(letter)
-    puts "\n...\n\nHm, no #{letter}'s.\n\n"
+    puts "\n...\n\n#{Rainbow("Hm, no #{letter}'s").orange}.\n\n"
     decrement_wrong_guesses
-    puts "You have " + red_text(@wrong_guesses_remaining) + " wrong guesses left. Try again."
+    puts "You have " + Rainbow("#{@wrong_guesses_remaining}").red + " wrong guesses left. Try again."
   end
 
   def prettified_guessed_word
-    yellow_text "\n#{@guessed_word.chars.join(' ')}\n\n\n"
+    Rainbow("#{@guessed_word.chars.join(' ')}\n\n\n").yellow
   end
 
   def guess_letter
-    display_already_guessed_letters if @letters_already_guessed.any?
+    display_already_guessed_letters unless @letters_already_guessed.empty?
     print "\nPick a letter... "
     letter = answer.downcase.strip
     return save_game if save_game?(letter)
@@ -165,7 +163,7 @@ class Hangman
   end
 
   def display_already_guessed_letters
-    print "Here's what you've guessed so far: #{guessed_letters}\n\n"
+    print " Here's what you've guessed so far: #{Rainbow("#{guessed_letters}").cyan}\n\n"
   end
 
   def save_game?(letter)
@@ -220,7 +218,7 @@ class Hangman
 
   def already_guessed_message(letter)
     print "\nYou already guessed #{letter}. "
-    print "Here are all the letters you've guessed so far: #{@letters_already_guessed.join(", ")}\n\n"
+    print "Try a new letter!"
   end
 
   def non_letter_message(letter)
@@ -232,13 +230,8 @@ class Hangman
   end
 
   def update_guessed_word(letter)
-    indices = []
     @word.chars.each.with_index do |char, i|
-      indices << i if letter == char
-    end
-
-    indices.each do |index|
-      @guessed_word[index] = letter
+      @guessed_word[i] = char if letter == char
     end
   end
 
@@ -255,12 +248,13 @@ class Hangman
   end
 
   def announce_winner
-    puts green_text('You guessed it - great job!')
+    puts Rainbow('You guessed it - great job!').green
     play_again? ? Hangman.play : exit_game
   end
 
   def game_over
-    puts "You ran out of turns. You lost this round. The word was " + purple_text(@word) + ".\n\n"
+    puts "You ran out of turns. You lost this round. "
+    print " The word was #{Rainbow("#{@word}").purple}.\n\n"
     puts "Better luck next time!\n\n"
     play_again? ? Hangman.play : exit_game
   end
@@ -277,23 +271,5 @@ class Hangman
   def exit_game
     puts "\nOk, let's call it a day. Have a good one!"
     exit
-  end
-
-  private
-
-  def red_text(text)
-    Rainbow(text).red
-  end
-
-  def yellow_text(text)
-    Rainbow(text).yellow
-  end
-
-  def green_text(text)
-    Rainbow(text).green
-  end
-
-  def purple_text(text)
-    Rainbow(text).purple
   end
 end
