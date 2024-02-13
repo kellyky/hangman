@@ -10,7 +10,7 @@ class Hangman
 
   def self.play
     self.print_intro
-    self.new_game unless self.saved_games_exist?
+    return self.new_game unless self.saved_games_exist?
 
     print "\n\u{1F913} You have saved games \u{1F913}. "
     print Rainbow("Press ENTER/RETURN for a NEW game").greenyellow
@@ -26,7 +26,8 @@ class Hangman
     puts Rainbow( " - To win,").teal.bright + " guess the word before you run out of guesses\n"
     puts " - If you guess incorrectly " + Rainbow('5').crimson + " times, you " + Rainbow("you lose").crimson.bright
 
-    puts Rainbow("\n\nA tip before we start: You can save your game. To do so, simply type 'save' when prompted for a letter.\n\n").mediumvioletred.italic
+    print Rainbow("\n\nA tip before we start: You can save your game.").mediumvioletred.italic
+    print Rainbow(" To do so, simply type 'save' when prompted for a letter.\n\n").mediumvioletred.italic
   end
 
   def self.saved_games_exist?
@@ -34,7 +35,7 @@ class Hangman
   end
 
   def self.new_game
-    print "\nGreat! A new word for a new game."
+    print Rainbow("\nGreat! A new word for a new game.").greenyellow
     word = self.wordlist.select { |word| word.length >= 5 && word.length <= 12 }.shuffle.pop
     new(word).play
   end
@@ -101,7 +102,7 @@ class Hangman
   end
 
   def self.game_recap(word_length, guessed_word, guessed_letters, wrong_guesses_left)
-    puts "\n\nGreat! Picking up where you left off:\n\n"
+    puts Rainbow("\n\nGreat! Picking up where you left off on your saved game:\n\n").mediumturquoise
     puts "  - Your word has #{Rainbow("#{word_length} letters").green}"
     puts "  - Here are the letters you've already guessed: #{Rainbow(guessed_letters).cyan}, "
     puts "  - You have #{Rainbow("#{wrong_guesses_left} wrong guesses").red} left."
@@ -133,7 +134,6 @@ class Hangman
   end
 
   def player_turn
-    # puts "\n======================  <> <> <> <> <>  ====================== \n\n"
     letter = guess_letter
     letter_in_word?(letter) ? correct_guess(letter) : incorrect_guess(letter)
     @guesses_used += 1
@@ -142,23 +142,22 @@ class Hangman
 
   def correct_guess(letter)
     update_guessed_word(letter)
-    puts "\n#{Rainbow("Woohoo").green}! #{Rainbow("'#{letter.upcase}'").green} is in the word:  #{prettified_guessed_word}."
+    puts "\nWoohoo! #{Rainbow("'#{letter.upcase}'").green} is in the word: #{prettified_guessed_word}"
   end
 
   def incorrect_guess(letter)
     decrement_wrong_guesses
-    print orang "\n\nHm, no #{letter}'s. "
+    print Rainbow("\n\nHm, no #{letter}'s. ").orange
     print "You have #{Rainbow("#{@wrong_guesses_remaining}").red} wrong guesses left. "
     print "Try again\n\n"
   end
-
 
   def prettified_guessed_word
     Rainbow("#{@guessed_word.chars.join(' ')}\n\n\n").yellow
   end
 
   def guess_letter
-    print "\nPick a letter... "
+    print Rainbow("\nPick a letter... ").hotpink
     display_already_guessed_letters unless @letters_already_guessed.empty?
     letter = answer.downcase.strip
     return save_game if save_game?(letter)
@@ -166,7 +165,8 @@ class Hangman
   end
 
   def display_already_guessed_letters
-    print " | Here's what you've guessed so far: #{Rainbow("#{guessed_letters}").cyan}\n\n"
+    print Rainbow(' | Letters already guessed: ').royalblue
+    print Rainbow("#{guessed_letters}\n\n").cyan.bright
   end
 
   def save_game?(letter)

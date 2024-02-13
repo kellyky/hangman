@@ -4,41 +4,65 @@ require './lib/hangman'
 require 'pry-byebug'
 
 RSpec.describe Hangman do
-  subject { described_class.new(wordlist) }
-  let(:wordlist) { %w[a asdfasdfasdfasdf banana] }
+  subject { described_class.new('banana') }
 
   describe '.play' do
     context 'when there ARE saved games' do
       it 'should go through the saved_games_options' do
-        allow(described_class).to receive(:saved_games?).and_return(true)
-        expect(described_class).to receive(:saved_game_option)
+        allow(described_class).to receive(:saved_games_exist?).and_return(true)
+        expect(described_class).to receive(:saved_game)
         described_class.play
       end
     end
 
     context 'when there are NO saved games' do
       it 'should call new_game' do
-        allow(described_class).to receive(:saved_games?).and_return(false)
+        allow(described_class).to receive(:saved_games_exist?).and_return(false)
         expect(described_class).to receive(:new_game)
         described_class.play
       end
     end
   end
 
-  describe '.saved_game_option' do
+  describe '.saved_games_exist?' do
+    context 'when there are saved games' do
+      before { allow(Dir).to receive(:children).with('saved').and_return(['saved/file.txt']) }
+      it { expect(described_class.saved_games_exist?).to be true}
+    end
+
+    context 'when there are no saved games' do
+      before { allow(Dir).to receive(:children).with('saved').and_return([]) }
+      it { expect(described_class.saved_games_exist?).to be false}
+    end
+  end
+
+  describe '.new_game' do
+    it 'should call play' do
+      expect(subject).to receive(:play)
+      subject.play
+    end
+  end
+
+  describe '.wordlist' do
+    it 'should return an array/list of words' do
+      expect(described_class.wordlist.class).to be(Array)
+    end
+  end
+
+  describe '.saved_game' do
     let(:files) { ['file_a.txt', 'file_b.txt'] }
     let(:saved_games) { { '1' => 'file_a', '2' => 'file_b' } }
     let(:user_response) { '1' }
 
     before do
       allow(Dir).to receive(:children).with('saved').and_return(files)
-      allow(described_class).to receive(:saved_games).with(files).and_return(saved_games) 
+      allow(described_class).to receive(:saved_games).with(files).and_return(saved_games)
       allow(described_class).to receive(:user_response).and_return(user_response)
     end
 
     it 'calls parse_input, passing in the user response & saved games hash as args' do
       expect(described_class).to receive(:parse_input).with(user_response, saved_games)
-      described_class.saved_game_option
+      described_class.saved_game
     end
   end
 
@@ -84,19 +108,6 @@ RSpec.describe Hangman do
     end
   end
 
-  describe '.new_game' do
-    it 'should call play' do
-      expect(subject).to receive(:play)
-      subject.play
-    end
-  end
-
-  describe '.wordlist' do
-    it 'should return an array/list of words' do
-      expect(described_class.wordlist.class).to be(Array)
-    end
-  end
-
   describe '.parse_input' do
     let(:saved_games) { {"1"=>"file_a", "2"=>"file_b"} }
 
@@ -137,35 +148,11 @@ RSpec.describe Hangman do
     # end
   end
 
+  # how to test this one though?
   describe '.resume_saved_game' do
-    let!(:file) { 'file.txt' }
-    let(:data) do
-      game_data = { 'foo' => 'bar' }
-      binding.pry
-      allow(YAML).to receive(:load_file).with(file).and_return(game_data) 
-    end
-
-    before { allow(Dir).to receive(:children).with('saved').and_return([file]) }
-
-    it 'qwer' do
-      # binding.pry
-      described_class.resume_saved_game('saved/file.txt')
-    end
   end
 
   describe '.game_recap' do
-  end
-
-  describe '.saved_games?' do
-    context 'when there are saved games present' do
-      it 'should return true' do
-      end
-    end
-
-    context 'when there are no saved games' do
-      it 'should return false' do
-      end
-    end
   end
 
   describe '#play' do
@@ -190,21 +177,24 @@ RSpec.describe Hangman do
     end
   end
 
-  describe '#evaluate_guess_count' do
-    context 'when it is the first guess' do
-      it 'calls welcome sequence' do
-        subject.instance_variable_set(:@guesses_used, 0)
-        expect(subject).to receive(:welcome_player)
-        subject.evaluate_guess_count
+  # TODO
+  describe '#show_word_length' do
+  end
+
+  describe '#game_over' do
+    context 'when the player wants to play again' do
+      before { allow(subject).to receive(:play_again?).and_return(true) }
+      it 'should start a new game' do
+        expect(described_class).to receive(:play)
+        subject.game_over
       end
     end
 
-    context 'when the player is out of wrong guesses' do
-      it 'calls game_over' do
-        subject.instance_variable_set(:@guesses_used, 5)
-        subject.instance_variable_set(:@wrong_guesses_remaining, 0)
-        expect(subject).to receive(:game_over)
-        subject.evaluate_guess_count
+    context 'when the player does not want to play again' do
+      before { allow(subject).to receive(:play_again?).and_return(false) }
+      it 'should call exit_game' do
+        expect(subject).to receive(:exit_game)
+        subject.game_over
       end
     end
   end
@@ -260,6 +250,12 @@ RSpec.describe Hangman do
     end
   end
 
+  describe '#display_already_guessed_letters' do
+  end
+
+  describe '#save_game?' do
+  end
+
   describe '#save_game?' do
     context 'when the player typed "save"' do
       let(:letter) { 'save' }
@@ -308,6 +304,44 @@ RSpec.describe Hangman do
         expect(subject.valid_guess?('a')).to be(true)
       end
     end
+  end
+
+  describe '#already_guessed?' do
+  end
+
+  describe '#letter?' do
+  # non letter should be false
+  # letter should be true
+  end
+
+  describe '#too_many_characters?' do
+    context 'when 2 or more characters are entered' do
+      it 'should return true' do
+      end
+    end
+
+    context 'when 1 character is entered' do
+      it 'should return false' do
+      end
+    end
+  end
+
+  describe '#guessed_letters' do
+  # undecided about this method
+  # currently sorts the array and joins with a comma
+
+  end
+
+  describe '#already_guessed_message' do
+    # probably not testing this - just a string with interpolation
+  end
+
+  describe '#non_letter_message' do
+    # probably not testing this - just a string with interpolation
+  end
+
+  describe '#too_many_characters_message' do
+    # probably not testing this - just a string with interpolation
   end
 
   describe '#update_guessed_word' do
@@ -364,28 +398,20 @@ RSpec.describe Hangman do
 
     context 'when the player does not want to play again' do
       before { allow(subject).to receive(:play_again?).and_return(false) }
-      it 'should call byebye to exit' do
-        expect(subject).to receive(:byebye)
+      it 'should call exit_game to exit' do
+        expect(subject).to receive(:exit_game)
         subject.announce_winner
       end
     end
   end
 
   describe '#game_over' do
-    context 'when the player wants to play again' do
-      before { allow(subject).to receive(:play_again?).and_return(true) }
-      it 'should start a new game' do
-        expect(described_class).to receive(:play)
-        subject.game_over
-      end
+    context 'when the player chooses to play_again' do
+      # should call Hangman.play
     end
 
-    context 'when the player does not want to play again' do
-      before { allow(subject).to receive(:play_again?).and_return(false) }
-      it 'should call byebye' do
-        expect(subject).to receive(:byebye)
-        subject.game_over
-      end
+    context 'when the player chooses to stop playing' do
+      # should call exit_game
     end
   end
 
@@ -409,7 +435,7 @@ RSpec.describe Hangman do
     end
   end
 
-  describe '#byebye' do
-    it { expect { subject.byebye }.to raise_exception SystemExit }
+  describe '#exit_game' do
+    it { expect { subject.exit_game }.to raise_exception SystemExit }
   end
 end
