@@ -34,14 +34,29 @@ class Hangman
     Dir.children('saved').any?
   end
 
-  def self.new_game
-    print Rainbow("\nGreat! A new word for a new game.").greenyellow
-    word = self.wordlist.select { |word| word.length >= 5 && word.length <= 12 }.shuffle.pop
+  def self.new_game_kids_mode
+    print Rainbow("\nGreat! A new word for a new game in kids mode.").greenyellow
+    word = self.wordlist_kids.shuffle.pop
     new(word).play
   end
 
-  def self.wordlist
+  def self.new_game_standard_mode
+    print Rainbow("\nGreat! A new word for a new game.").greenyellow
+    word = self.wordlist_standard.select { |word| word.length >= 5 && word.length <= 12 }.shuffle.pop
+    new(word).play
+  end
+
+  def self.new_game
+    binding.pry
+    new(word).play
+  end
+
+  def self.wordlist_standard
     File.read('google-10000-english-no-swears.txt').split
+  end
+
+  def self.wordlist_kids
+    File.read('kids-words.txt').split
   end
 
   def self.saved_game
@@ -68,6 +83,8 @@ class Hangman
   end
 
   def self.parse_input(user_response, saved_games)
+    secret_game_password = 'sierra'
+    return self.new_game_kids_mode if user_response == secret_game_password
     return self.new_game if user_response.empty?
 
     if saved_games.keys.none?(user_response)
