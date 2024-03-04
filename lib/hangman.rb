@@ -47,7 +47,6 @@ class Hangman
   end
 
   def self.new_game
-    binding.pry
     new(word).play
   end
 
@@ -85,7 +84,7 @@ class Hangman
   def self.parse_input(user_response, saved_games)
     secret_game_password = 'sierra'
     return self.new_game_kids_mode if user_response == secret_game_password
-    return self.new_game if user_response.empty?
+    return self.new_game_standard_mode if user_response.empty?
 
     if saved_games.keys.none?(user_response)
       puts "\n\nI don't have any games saved for '#{user_response}'.\n\n"
