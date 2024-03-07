@@ -107,16 +107,16 @@ class Hangman
   end
 
   def self.game_recap(game_data)
-    word_length = game_data[:word].length
-    guessed_word = game_data[:guessed_word].chars.join(' ')
-    guessed_letters = game_data[:letters_already_guessed].join(', ')
-    wrong_guesses_left = game_data[:wrong_guesses_remaining]
+    word_length = Rainbow(game_data[:word].length.to_s).green
+    guessed_word = Rainbow(game_data[:guessed_word].chars.join(' ').to_s).yellow
+    guessed_letters = Rainbow(game_data[:letters_already_guessed].join(', ').to_s).cyan
+    wrong_guesses_left = Rainbow(game_data[:wrong_guesses_remaining].to_s).red
 
     puts Rainbow("\n\nGreat! Picking up where you left off on your saved game:\n\n").mediumturquoise
-    puts "  - You have #{Rainbow("#{wrong_guesses_left} wrong guesses").red} left."
-    puts "  - Your word has #{Rainbow("#{word_length} letters").green}"
-    puts "  - You've already guessed: #{Rainbow(guessed_letters).cyan}, "
-    puts "  - Here's what you have: #{Rainbow(guessed_word).yellow}"
+    puts "  - You have #{wrong_guesses_left} guesses left"
+    puts "  - Your word has #{word_length} letters"
+    puts "  - You've already guessed: #{guessed_letters}"
+    puts "  - Here's what you have: #{guessed_word}"
     puts "\n\n You've got this!\n\n"
   end
 
