@@ -1,8 +1,0 @@
----
-:word: documents
-:guesses_used: 2
-:wrong_guesses_remaining: 3
-:guessed_word: _________
-:letters_already_guessed:
-- a
-- z

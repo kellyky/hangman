@@ -9,22 +9,23 @@ class Hangman
   attr_reader :wrong_guesses_remaining
 
   def self.play
-    self.print_intro
-    return self.new_game unless self.saved_games_exist?
+    print_intro
+    return new_game_standard_mode unless saved_games_exist?
 
     print "\n\u{1F913} You have saved games \u{1F913}. "
-    print Rainbow("Press ENTER/RETURN for a NEW game").greenyellow
-    print " or "
+    print Rainbow('Press ENTER/RETURN for a NEW game').greenyellow
+    print ' or '
     print Rainbow("choose from the following:\n\n").mediumturquoise
-    self.saved_game
+    saved_game
   end
 
   def self.print_intro
     puts "\n\n"
     puts Rainbow(" <<>> Welcome to Hangman! <<>>\n").royalblue.bright.center(80)
-    puts "Your goal is to guess the word, one letter at a time:"
-    puts Rainbow( " - To win,").teal.bright + " guess the word before you run out of guesses\n"
-    puts " - If you guess incorrectly " + Rainbow('5').crimson + " times, you " + Rainbow("you lose").crimson.bright
+    puts 'Your goal is to guess the word, one letter at a time:'
+    puts "#{Rainbow(' - To win,').teal.bright} guess the word before you run out of guesses\n"
+
+    puts " - If you guess incorrectly #{Rainbow('5').crimson} times, you #{Rainbow('you lose').crimson.bright}"
 
     print Rainbow("\n\nA tip before we start: You can save your game.").mediumvioletred.italic
     print Rainbow(" To do so, simply type 'save' when prompted for a letter.\n\n").mediumvioletred.italic
@@ -36,13 +37,13 @@ class Hangman
 
   def self.new_game_kids_mode
     print Rainbow("\nGreat! A new word for a new game in kids mode.").greenyellow
-    word = self.wordlist_kids.shuffle.pop
+    word = wordlist_kids.shuffle.pop
     new(word).play
   end
 
   def self.new_game_standard_mode
     print Rainbow("\nGreat! A new word for a new game.").greenyellow
-    word = self.wordlist_standard.select { |word| word.length >= 5 && word.length <= 12 }.shuffle.pop
+    word = wordlist_standard.select { |el| el.length >= 5 && el.length <= 12 }.shuffle.pop
     new(word).play
   end
 
@@ -64,7 +65,7 @@ class Hangman
     saved_games.each { |option, name| puts "  - [#{option}] #{name}" }
 
     user_response = self.user_response
-    self.parse_input(user_response, saved_games)
+    parse_input(user_response, saved_games)
   end
 
   def self.files
@@ -81,57 +82,50 @@ class Hangman
     gets.chomp.strip
   end
 
+  def self.secret_mode_key
+    'sierra'
+  end
+
   def self.parse_input(user_response, saved_games)
-    secret_game_password = 'sierra'
-    return self.new_game_kids_mode if user_response == secret_game_password
-    return self.new_game_standard_mode if user_response.empty?
+    return new_game_kids_mode if user_response == secret_mode_key
+    return new_game_standard_mode if user_response.empty?
 
     if saved_games.keys.none?(user_response)
       puts "\n\nI don't have any games saved for '#{user_response}'.\n\n"
       puts "Please choose from the games shown - or press [ENTER/RETURN] to start a new game.\n\n"
-      self.saved_game
+      saved_game
     end
 
     saved_file = saved_games[user_response]
-    filename = File.join('saved/', saved_file + ".txt")
-    self.resume_saved_game(filename)
+    resume_saved_game("saved/#{saved_file}.txt")
   end
 
   def self.resume_saved_game(file)
     data = YAML.load_file(file)
-
-    game = Hangman.new(
-      data[:word],
-      data[:guesses_used],
-      data[:guessed_word],
-      data[:wrong_guesses_remaining],
-      data[:letters_already_guessed]
-    )
-
-    self.game_recap(
-      data[:word].length.to_s,
-      data[:guessed_word].chars.join(' '),
-      data[:letters_already_guessed].join(', '),
-      data[:wrong_guesses_left]
-    )
-    game.play
+    game_recap(data)
+    Hangman.new(data[:word], data).play
   end
 
-  def self.game_recap(word_length, guessed_word, guessed_letters, wrong_guesses_left)
+  def self.game_recap(game_data)
+    word_length = game_data[:word].length
+    guessed_word = game_data[:guessed_word].chars.join(' ')
+    guessed_letters = game_data[:letters_already_guessed].join(', ')
+    wrong_guesses_left = game_data[:wrong_guesses_remaining]
+
     puts Rainbow("\n\nGreat! Picking up where you left off on your saved game:\n\n").mediumturquoise
-    puts "  - Your word has #{Rainbow("#{word_length} letters").green}"
-    puts "  - Here are the letters you've already guessed: #{Rainbow(guessed_letters).cyan}, "
     puts "  - You have #{Rainbow("#{wrong_guesses_left} wrong guesses").red} left."
-    puts "  - Here's your word so far: " + Rainbow(guessed_word).yellow
+    puts "  - Your word has #{Rainbow("#{word_length} letters").green}"
+    puts "  - You've already guessed: #{Rainbow(guessed_letters).cyan}, "
+    puts "  - Here's what you have: #{Rainbow(guessed_word).yellow}"
     puts "\n\n You've got this!\n\n"
   end
 
-  def initialize(word, guesses_used=0, guessed_word=nil, wrong_guesses_remaining=5, letters_already_guessed=[])
+  def initialize(word, saved_game_data = {})
     @word = word
-    @guesses_used = guesses_used
-    @wrong_guesses_remaining = wrong_guesses_remaining
-    @guessed_word = guessed_word ||''.rjust(@word.length, '_')
-    @letters_already_guessed = letters_already_guessed
+    @guesses_used = saved_game_data[:guessed_used] || 0
+    @wrong_guesses_remaining = saved_game_data[:wrong_guesses_remaining] || 5
+    @guessed_word = saved_game_data[:guessed_word] || ''.rjust(@word.length, '_')
+    @letters_already_guessed = saved_game_data[:letters_already_guessed] || []
   end
 
   def play
@@ -164,7 +158,7 @@ class Hangman
   def incorrect_guess(letter)
     decrement_wrong_guesses
     print Rainbow("\n\nHm, no #{letter}'s. ").orange
-    print "You have #{Rainbow("#{@wrong_guesses_remaining}").red} wrong guesses left. "
+    print "You have #{Rainbow(@wrong_guesses_remaining.to_s).red} wrong guesses left. "
     print "Try again\n\n"
   end
 
@@ -177,6 +171,7 @@ class Hangman
     display_already_guessed_letters unless @letters_already_guessed.empty?
     letter = answer.downcase.strip
     return save_game if save_game?(letter)
+
     valid_guess?(letter) ? letter : guess_letter
   end
 
@@ -195,28 +190,28 @@ class Hangman
 
     file_name = game_name.empty? ? 'saved_game' : game_name
 
-    data = YAML.dump({
-      word: @word,
-      guesses_used: @guesses_used,
-      wrong_guesses_remaining: @wrong_guesses_remaining,
-      guessed_word: @guessed_word,
-      letters_already_guessed: @letters_already_guessed
-    })
-
-    File.open("saved/#{file_name}.txt", 'w') do |file|
-      file.write(data)
-    end
+    File.open("saved/#{file_name}.txt", 'w') { |file| file.write(game_data_dump) }
 
     puts "\nGot it! Your game will be called #{file_name}. Let's call it a day for now!"
-    exit end
+    exit
+  end
+
+  def game_data_dump
+    YAML.dump({
+                word: @word,
+                guesses_used: @guesses_used,
+                wrong_guesses_remaining: @wrong_guesses_remaining,
+                guessed_word: @guessed_word,
+                letters_already_guessed: @letters_already_guessed
+              })
+  end
 
   def valid_guess?(letter)
-    case
-    when already_guessed?(letter) then already_guessed_message(letter)
-    when !letter?(letter) then non_letter_message(letter)
-    when too_many_characters?(letter) then too_many_characters_message(letter)
-    else return true
-    end
+    return already_guessed_message(letter) if already_guessed?(letter)
+    return non_letter_message(letter) unless letter?(letter)
+    return too_many_characters_message(letter) if too_many_characters?(letter)
+
+    true
   end
 
   def already_guessed?(letter)
@@ -232,7 +227,7 @@ class Hangman
   end
 
   def guessed_letters
-    @letters_already_guessed.sort.join(", ")
+    @letters_already_guessed.sort.join(', ')
   end
 
   def already_guessed_message(letter)
@@ -272,8 +267,8 @@ class Hangman
   end
 
   def game_over
-    puts "You ran out of turns. You lost this round. "
-    print " The word was #{Rainbow("#{@word}").purple}.\n\n"
+    puts 'You ran out of turns. You lost this round. '
+    print " The word was #{Rainbow(@word.to_s).purple}.\n\n"
     puts "Better luck next time!\n\n"
     play_again? ? Hangman.play : exit_game
   end
