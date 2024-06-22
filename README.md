@@ -17,9 +17,11 @@ ruby play_hangman.rb
 ```
 
 ## Features
-- Save a game or pick up where you left off on a saved game
-- Or play a new game
-- New game has hidden kid-mode (my friend's kids made a list of words). To play kid-mode, type 'sierra' instead of either selecting a saved game or pressing return to start a new game in standard mode
+- Play a new game
+- Save a game to play later
+- Play a saved game picking up where you left off
+- New game has hidden kid-mode (my friend's kids made a list of words).
+  - To play kid-mode, type 'sierra' instead of either selecting a saved game or pressing return to start a new game in standard mode
 - Standard mode uses google's 10k most commonly used words
 
 ## TODOs
