@@ -5,8 +5,12 @@ The computer chooses a word (5-12 charaters). To win, guess all letters in the w
 
 ## Setup
 This game was written in Ruby and you'll need Ruby to play if you do not have it. 
-1. Clone this repo `git clone git@github.com:kellyky/hangman.git`
-2. cd into this repo `cd hangman`
+
+```sh
+git clone git@github.com:kellyky/hangman.git
+cd hangman
+bundle install
+```
 
 ## Gameplay
 You play the game in your terminal. 
